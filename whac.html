@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body {
+            text-align: center;
+            background-image: url('https://i.postimg.cc/SsYjh0Hm/whacamolebg.jpg');
+            background-size: cover;
+            background-repeat: no-repeat;
+            background-attachment: fixed;
+            background-position: center center;
+        }
+
+        #game-container {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            grid-gap: 10px;
+            width: 300px;
+            margin: 0 auto; /* Center the grid */
+        }
+
+        .cell {
+            width: 100px;
+            height: 100px;
+            background-color: transparent;
+            border: 2px solid #27ae60;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            cursor: pointer;
+        }
+
+        .cell:hover {
+            background-color: #c0392b;
+        }
+
+        .cell img {
+            width: 80px; /* Adjust the size of the image as needed */
+        }
+
+        #start-button {
+            font-size: 18px;
+            margin-top: 20px;
+            padding: 10px 20px;
+            background-color: #3498db;
+            color: #fff;
+            border: none;
+            cursor: pointer;
+        }
+
+        #attempts {
+            font-size: 18px;
+            margin-top: 10px;
+        }
+
+        #retry-button {
+            display: none;
+            font-size: 18px;
+            padding: 10px 20px;
+            background-color: #3498db;
+            color: #fff;
+            border: none;
+            cursor: pointer;
+        }
+
+        #reaction-time-popup {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 9999;
+            justify-content: center;
+            align-items: center;
+        }
+
+        #reaction-time-popup-content {
+            background-color: #fff;
+            border: 1px solid #ccc;
+            padding: 20px;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+            text-align: center;
+        }
+
+        #retry-popup-button {
+            font-size: 18px;
+            padding: 10px 20px;
+            background-color: #3498db;
+            color: #fff;
+            border: none;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+
+        #reaction-times {
+            text-align: left;
+        }
+
+        .reaction-time-item {
+            margin-bottom: 10px;
+        }
+
+        #title {
+            font-size: 32px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <h1 id="title">WHAC-A-MOLE!</h1>
+    <div id="game-container"></div>
+    <button id="start-button">Start</button>
+    <div id="attempts">Attempts Left: 5</div>
+    <button id="retry-button">Retry</button>
+
+    <div id="reaction-time-popup">
+        <div id="reaction-time-popup-content">
+            <h2>Reaction Times</h2>
+            <div id="reaction-times"></div>
+            <div id="average-reaction-time"></div>
+            <button id="retry-popup-button">Retry</button>
+        </div>
+    </div>
+
+    <script>
+        const gridContainer = document.getElementById("game-container");
+        const startButton = document.getElementById("start-button");
+        const attemptsText = document.getElementById("attempts");
+        const retryButton = document.getElementById("retry-button");
+        const reactionTimePopup = document.getElementById("reaction-time-popup");
+        const reactionTimesDisplay = document.getElementById("reaction-times");
+        const averageReactionTimeDisplay = document.getElementById("average-reaction-time");
+        const retryPopupButton = document.getElementById("retry-popup-button");
+        let moleInterval;
+        let attemptsLeft = 5; // Start with 5 attempts
+        let gameStarted = false;
+        let setsRemaining = 6; // Now we have 6 sets, the last set will be displayed for 1 second
+        let firstMoleGenerated = false;
+        let reactionTimes = new Array(5).fill(null);
+
+        function createGrid() {
+            for (let i = 0; i < 3; i++) {
+                for (let j = 0; j < 3; j++) {
+                    const cell = document.createElement("div");
+                    cell.className = "cell";
+                    gridContainer.appendChild(cell);
+                }
+            }
+        }
+
+        function startGame() {
+            if (!gameStarted) {
+                gameStarted = true;
+                startButton.style.display = "none"; // Hide the start button
+                attemptsText.textContent = `Attempts Left: ${attemptsLeft}`;
+                createGridWithMoles();
+                moleInterval = setInterval(createGridWithMoles, 2000); // Generate sets every 2 seconds
+            }
+        }
+
+        function createGridWithMoles() {
+            const cells = document.querySelectorAll(".cell");
+            if (firstMoleGenerated) {
+                attemptsLeft--; // Decrease attempts after the first rat
+                attemptsText.textContent = `Attempts Left: ${attemptsLeft}`;
+            } else {
+                firstMoleGenerated = true;
+            }
+            cells.forEach((cell) => {
+                cell.innerHTML = ""; // Clear previous content
+            });
+            if (setsRemaining > 1) {
+                const randomIndex = Math.floor(Math.random() * cells.length);
+                const moleImage = document.createElement("img");
+                moleImage.src = "https://i.postimg.cc/4xH2zDQc/pngwing-com.png"; // Image URL
+                cells[randomIndex].appendChild(moleImage);
+                if (attemptsLeft > 0) {
+                    const startTime = new Date().getTime();
+                    cells[randomIndex].addEventListener("click", () => {
+                        const endTime = new Date().getTime();
+                        const reactionTime = endTime - startTime;
+                        const nextIndex = 5 - setsRemaining;
+                        reactionTimes[nextIndex] = reactionTime;
+                        cells[randomIndex].innerHTML = ""; // Remove the mole when clicked
+                    });
+                }
+            }
+            setsRemaining--;
+            if (setsRemaining === 0) {
+                endGame();
+            }
+        }
+
+        function whackMole() {
+            if (gameStarted && this.querySelector("img")) {
+                this.innerHTML = ""; // Remove the mole
+            }
+        }
+
+        function endGame() {
+            clearInterval(moleInterval);
+            gameStarted = false;
+            retryButton.style.display = "block";
+            displayReactionTimes();
+        }
+
+        function retryGame() {
+            setsRemaining = 6; // Reset the sets
+            attemptsLeft = 5; // Reset attempts to 5
+            attemptsText.textContent = `Attempts Left: ${attemptsLeft}`;
+            retryButton.style.display = "none";
+            startButton.style.display = "block"; // Show the start button
+            const cells = document.querySelectorAll(".cell");
+            cells.forEach((cell) => {
+                cell.innerHTML = "";
+            });
+            firstMoleGenerated = false;
+            reactionTimes = new Array(5).fill(null);
+            reactionTimesDisplay.innerHTML = "";
+            averageReactionTimeDisplay.textContent = "";
+            reactionTimePopup.style.display = "none"; // Hide the reaction time popup
+        }
+
+        function displayReactionTimes() {
+            reactionTimesDisplay.innerHTML = "";
+            reactionTimes.forEach((time, index) => {
+                const reactionTimeItem = document.createElement("div");
+                reactionTimeItem.className = "reaction-time-item";
+                reactionTimeItem.textContent = `Reaction time ${index + 1}: ${
+                    time !== null ? `${time}ms` : "NA"
+                }`;
+                reactionTimesDisplay.appendChild(reactionTimeItem);
+            });
+
+            const validReactionTimes = reactionTimes.filter((time) => time !== null);
+            const averageReactionTime =
+                validReactionTimes.length > 0
+                    ? validReactionTimes.reduce((a, b) => a + b) / validReactionTimes.length
+                    : "NA";
+
+            averageReactionTimeDisplay.textContent = `Average reaction Time: ${averageReactionTime}ms`;
+            reactionTimePopup.style.display = "flex";
+        }
+
+        retryPopupButton.addEventListener("click", retryGame);
+
+        startButton.addEventListener("click", startGame);
+        retryButton.addEventListener("click", retryGame);
+
+        createGrid(); // Initialize the grid
+    </script>
+</body>
+</html>
